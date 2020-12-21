@@ -1,32 +1,41 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:web_socket_channel/io.dart';
 import 'package:mathx_chat/ChatScreen.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(MathXChatApp());
 }
 
 final ThemeData kIOSTheme = new ThemeData(
-  primarySwatch: Colors.black12,
+  primarySwatch: Colors.orange,
   primaryColor: Colors.grey[100],
   primaryColorBrightness: Brightness.light,
 );
 
 final ThemeData kDefaultTheme = new ThemeData(
-  primarySwatch: Colors.black12,
+  primarySwatch: Colors.purple,
   accentColor: Colors.orangeAccent[400],
 );
 
-class MyApp extends StatelessWidget {
+class MathXChatApp extends StatelessWidget {
   // This widget is the root of your application.
-  final title = 'MathX Chat';
-  final wsDomain = 'localhost';
-  final wsPort = 34596;
-  final wsPath = 'websocket';
-  // final channel = IOWebSocketChannel.connect('ws://$wsDomain:$wsPort/$wsPath');
-  final channel = IOWebSocketChannel.connect('wss://echo.websocket.org'); // debug
+  final String title = 'MathX Chat';
+  // final websocketServerInfo = {'protocol': 'ws',
+  //                              'domain': 'localhost',
+  //                              'port': 34596,
+  //                              'path': 'websocket'};
+  // final String protocol = 'ws';
+  // final String wsDomain = 'localhost';
+  // final int wsPort = 34596;
+  // final String wsPath = 'websocket';
+  // final WebSocketChannel channel = IOWebSocketChannel.connect('ws://$wsDomain:$wsPort/$wsPath');
+  // final WebSocketChannel channel = IOWebSocketChannel.connect('wss://echo.websocket.org'); // debug
+
+  final String serverAddress = 'ws://localhost:34596/websocket';
+  // final String serverAddress = 'wss://echo.websocket.org';
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +43,7 @@ class MyApp extends StatelessWidget {
       title: 'MathX 2',
       theme: defaultTargetPlatform == TargetPlatform.iOS
           ? kIOSTheme : kDefaultTheme,
-      home: ChatScreen(title, channel),
+      home: ChatScreen(title: title, serverAddress: serverAddress, name: 'Student'),
     );
   }
 }

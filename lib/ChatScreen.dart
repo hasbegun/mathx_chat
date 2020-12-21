@@ -1,102 +1,103 @@
+import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'dart:convert';
 
-const String _name = 'Dev';
-
-class ChatMessage extends StatelessWidget {
-  ChatMessage({this.text, this.animationController});
-  final String text;
-  final AnimationController animationController;
-
-  @override
-  Widget build(BuildContext context) {
-    return new SizeTransition(
-        sizeFactor: new CurvedAnimation(
-            parent: animationController,
-            curve: Curves.easeOut
-        ),
-        axisAlignment: 0.0,
-        child: new Container(
-          margin: const EdgeInsets.symmetric(vertical: 10.0),
-          child: new Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              new Container(
-                margin: const EdgeInsets.only(right: 16.0),
-                child: new CircleAvatar(child: new Text(_name[0])),
-              ),
-              new Expanded(
-                child: new Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    new Text(_name, style: Theme.of(context).textTheme.subhead),
-                    new Container(
-                      margin: const EdgeInsets.only(top: 5.0),
-                      child: new Text(text),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        )
-    );
-  }
-}
-
 class ChatScreen extends StatefulWidget {
   final String title;
-  final WebSocketChannel channel;
+  final String serverAddress;
+  final String name;
 
-  ChatScreen({Key key, @required this.title, @required this.channel})
+  ChatScreen({Key key,
+    @required this.title, @required this.serverAddress, @required this.name})
       : super(key: key);
 
   @override
   State createState() => new ChatScreenState();
 }
 
-class ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
+class ChatScreenState extends State<ChatScreen>
+                      with TickerProviderStateMixin {
   final List<ChatMessage> _messages = <ChatMessage>[];
   final TextEditingController _textController = new TextEditingController();
   bool _isComposing = false; // make it true whenever the user is typing in the input field.
+  WebSocketChannel channel;
+
+  initCommunication(String serverAdress) async {
+    try {
+      channel = await IOWebSocketChannel.connect(serverAdress);
+      channel.stream.listen((message) {
+        if (message.length > 0) {
+          // Server send message {'text': 'message'}
+          ChatMessage res = ChatMessage(
+            text: jsonDecode(message)['text'],
+            name: 'Teacher',
+            animationController: AnimationController(
+              duration: Duration(milliseconds: 700),
+              vsync: this,
+            ),
+          );
+          setState(() {
+            _messages.insert(0, res);
+          });
+          res.animationController.forward();
+        }
+      });
+    } catch (err) {
+      // fixme: need to retry... if failed to connect.
+      print('Unable to connect the server');
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    initCommunication(widget.serverAddress);
+  }
 
   /* Modify _handleSubmitted to update _isComposing to false
   when the text field is cleared.*/
-  void _handleSubmitted(String text) {
+  Future<Null> _handleSubmitted(String text) async {
     _textController.clear();
     setState(() {
       _isComposing = false;
     });
     ChatMessage message = new ChatMessage(
       text: text,
+      name: widget.name,
       animationController: new AnimationController(
         duration: new Duration(milliseconds: 700),
         vsync: this,
       ),
     );
+
     setState(() {
       _messages.insert(0, message);
     });
     message.animationController.forward();
+
+    // must wrap the message into 'text'
+    await channel.sink.add(json.encode({'text': message.text}));
   }
 
   void dispose() {
     for (ChatMessage message in _messages)
       message.animationController.dispose();
+    channel.sink.close();
     super.dispose();
   }
 
   Widget _buildTextComposer() {
-    return new IconTheme(
-      data: new IconThemeData(color: Theme.of(context).accentColor),
-      child: new Container(
+    return IconTheme(
+      data: IconThemeData(color: Theme.of(context).accentColor),
+      child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 8.0),
-          child: new Row(children: <Widget>[
-            new Flexible(
-              child: new TextField(
+          child: Row(children: <Widget>[
+            Flexible(
+              child: TextField(
                 controller: _textController,
                 onChanged: (String text) {
                   setState(() {
@@ -105,29 +106,29 @@ class ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                 },
                 onSubmitted: _handleSubmitted,
                 decoration:
-                new InputDecoration.collapsed(hintText: "Send a message"),
+                  InputDecoration.collapsed(hintText: "Send a message"),
               ),
             ),
-            new Container(
-                margin: new EdgeInsets.symmetric(horizontal: 4.0),
+            Container(
+                margin: EdgeInsets.symmetric(horizontal: 4.0),
                 child: Theme.of(context).platform == TargetPlatform.iOS
-                    ? new CupertinoButton(
-                  child: new Text("Send"),
+                    ? CupertinoButton(
+                  child: Text("Send"),
                   onPressed: _isComposing
                       ? () => _handleSubmitted(_textController.text)
                       : null,
                 )
-                    : new IconButton(
-                  icon: new Icon(Icons.send),
+                    : IconButton(
+                  icon: Icon(Icons.send),
                   onPressed: _isComposing
                       ? () => _handleSubmitted(_textController.text)
                       : null,
                 )),
           ]),
           decoration: Theme.of(context).platform == TargetPlatform.iOS
-              ? new BoxDecoration(
+              ? BoxDecoration(
               border:
-              new Border(top: new BorderSide(color: Colors.grey[200])))
+              Border(top: BorderSide(color: Colors.grey[200])))
               : null),
     );
   }
@@ -137,9 +138,9 @@ class ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
   }
 
   Widget build(BuildContext context) {
-    return new Scaffold(
-      appBar: new AppBar(
-          title: new Text("MathX Chat"),
+    return Scaffold(
+      appBar: AppBar(
+          title: Text("MathX Chat"),
           elevation:
             Theme.of(context).platform == TargetPlatform.iOS ? 0.0 : 4.0,
           actions: <Widget> [
@@ -150,26 +151,74 @@ class ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
           ]
       ),
 
-      body: new Container(
-          child: new Column(
+      body: Container(
+          child: Column(
               children: <Widget>[
-                new Flexible(
-                    child: new ListView.builder(
-                      padding: new EdgeInsets.all(8.0),
+                Flexible(
+                    child: ListView.builder(
+                      padding: EdgeInsets.all(8.0),
                       reverse: true,
                       itemBuilder: (_, int index) => _messages[index],
                       itemCount: _messages.length,
                     )
                 ),
-                new Divider(height: 1.0),
-                new Container(
-                  decoration: new BoxDecoration(
+                Divider(height: 1.0),
+                Container(
+                  decoration: BoxDecoration(
                       color: Theme.of(context).cardColor),
                   child: _buildTextComposer(),
                 ),
               ]
           ),
-          decoration: Theme.of(context).platform == TargetPlatform.iOS ? new BoxDecoration(border: new Border(top: new BorderSide(color: Colors.grey[200]))) : null),//new
+          decoration: Theme.of(context).platform == TargetPlatform.iOS
+              ? BoxDecoration(
+                border: Border(
+                    top: BorderSide(
+                        color: Colors.grey[200])))
+              : null),//new
+    );
+  }
+}
+
+class ChatMessage extends StatelessWidget {
+  ChatMessage({this.text, this.animationController, this.name});
+  final String name;
+  final String text;
+  final AnimationController animationController;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizeTransition(
+        sizeFactor: CurvedAnimation(
+            parent: animationController,
+            curve: Curves.easeOut
+        ),
+        axisAlignment: 0.0,
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 10.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Container(
+                margin: const EdgeInsets.only(right: 16.0),
+                child: CircleAvatar(child: Text(name[0])),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(name,
+                        style: Theme.of(context).textTheme.subhead),
+                    Container(
+                      margin: const EdgeInsets.only(top: 5.0),
+                      child: Text(text),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        )
     );
   }
 }
