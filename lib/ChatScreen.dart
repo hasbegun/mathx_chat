@@ -31,7 +31,7 @@ class ChatScreenState extends State<ChatScreen>
       channel = await IOWebSocketChannel.connect(serverAdress);
       channel.stream.listen((message) {
         if (message.length > 0) {
-          // Server send message {'text': 'message'}
+          // Server sends back the message {'text': 'message'} format.
           ChatMessage res = ChatMessage(
             text: jsonDecode(message)['text'],
             name: 'Teacher',
