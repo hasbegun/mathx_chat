@@ -21,7 +21,7 @@ final ThemeData kDefaultTheme = new ThemeData(
 );
 
 class MathXChatApp extends StatelessWidget {
-  // This widget is the root of your application.
+
   final String title = 'MathX Chat';
   // final websocketServerInfo = {'protocol': 'ws',
   //                              'domain': 'localhost',
@@ -35,6 +35,7 @@ class MathXChatApp extends StatelessWidget {
   // final WebSocketChannel channel = IOWebSocketChannel.connect('wss://echo.websocket.org'); // debug
 
   final String serverAddress = 'ws://localhost:34596/websocket';
+  // echo server for debug
   // final String serverAddress = 'wss://echo.websocket.org';
 
   @override
