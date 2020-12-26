@@ -9,10 +9,9 @@ import 'dart:convert';
 class ChatScreen extends StatefulWidget {
   final String title;
   final String serverAddress;
-  final String name;
 
   ChatScreen({Key key,
-    @required this.title, @required this.serverAddress, @required this.name})
+    @required this.title, @required this.serverAddress})
       : super(key: key);
 
   @override
@@ -25,16 +24,20 @@ class ChatScreenState extends State<ChatScreen>
   final TextEditingController _textController = new TextEditingController();
   bool _isComposing = false; // make it true whenever the user is typing in the input field.
   WebSocketChannel channel;
+  String sender = 'Student';
+  String responder = 'Teacher';
 
   initCommunication(String serverAdress) async {
     try {
+      print("debug ==> $serverAdress");
+
       channel = await IOWebSocketChannel.connect(serverAdress);
       channel.stream.listen((message) {
         if (message.length > 0) {
           // Server sends back the message {'text': 'message'} format.
           ChatMessage res = ChatMessage(
             text: jsonDecode(message)['text'],
-            name: 'Teacher',
+            name: responder,
             animationController: AnimationController(
               duration: Duration(milliseconds: 700),
               vsync: this,
@@ -67,7 +70,7 @@ class ChatScreenState extends State<ChatScreen>
     });
     ChatMessage message = new ChatMessage(
       text: text,
-      name: widget.name,
+      name: sender,
       animationController: new AnimationController(
         duration: new Duration(milliseconds: 700),
         vsync: this,

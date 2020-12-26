@@ -34,7 +34,15 @@ class MathXChatApp extends StatelessWidget {
   // final WebSocketChannel channel = IOWebSocketChannel.connect('ws://$wsDomain:$wsPort/$wsPath');
   // final WebSocketChannel channel = IOWebSocketChannel.connect('wss://echo.websocket.org'); // debug
 
-  final String serverAddress = 'ws://localhost:34596/websocket';
+  // FIXME: Android emulator doesn't work with localhost.
+  // Emulator may point back if localhost is used.
+  // however, localhost:port just works well on the iPhone emulator.
+  final String serverAddress = 'ws://172.17.0.2:34596/websocket';
+  // final String serverAddress = 'ws://chatservice.mathx.com:34596/websocket';
+
+  // docker container ip is 172.17.0.2
+  final String serverAddressIP = 'ws://172.17.0.2:34596/websocket';
+
   // echo server for debug
   // final String serverAddress = 'wss://echo.websocket.org';
 
@@ -44,7 +52,10 @@ class MathXChatApp extends StatelessWidget {
       title: 'MathX 2',
       theme: defaultTargetPlatform == TargetPlatform.iOS
           ? kIOSTheme : kDefaultTheme,
-      home: ChatScreen(title: title, serverAddress: serverAddress, name: 'Student'),
+      home: ChatScreen(title: title,
+          serverAddress: defaultTargetPlatform == TargetPlatform.iOS
+              ? serverAddress : serverAddressIP),
+        // serverAddress: serverAddress),
     );
   }
 }
